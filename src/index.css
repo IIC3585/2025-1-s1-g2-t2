@@ -5,9 +5,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Colores por defecto (modo claro) */
+  color: #1f2937; /* Tailwind gray-800 */
+  background-color: #f3f4f6; /* Tailwind gray-100 */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,56 +15,73 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+body, html, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: inherit;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Enlaces */
 a {
   font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  color: #3b82f6; /* Tailwind blue-500 */
+  text-decoration: none;
 }
 a:hover {
-  color: #535bf2;
+  color: #2563eb; /* Tailwind blue-600 */
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
+/* Encabezados */
 h1 {
-  font-size: 3.2em;
+  font-size: 2.25rem;
   line-height: 1.1;
+  font-weight: 700;
 }
 
+/* Botones */
 button {
-  border-radius: 8px;
+  border-radius: 0.5rem;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
-  font-size: 1em;
+  font-size: 1rem;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #e5e7eb; /* Tailwind gray-200 */
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: all 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  background-color: #d1d5db; /* Tailwind gray-300 */
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
-@media (prefers-color-scheme: light) {
+/* Modo oscuro automático */
+@media (prefers-color-scheme: dark) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #18181b; /* Tailwind zinc-900 */
+  }
+
+  a {
+    color: #93c5fd; /* Tailwind blue-300 */
   }
   a:hover {
-    color: #747bff;
+    color: #bfdbfe; /* Tailwind blue-200 */
   }
+
   button {
-    background-color: #f9f9f9;
+    background-color: #27272a; /* Tailwind zinc-800 */
+    color: white;
+  }
+  button:hover {
+    background-color: #3f3f46; /* Tailwind zinc-700 */
   }
 }
