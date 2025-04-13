@@ -45,4 +45,5 @@ export default defineConfig({
       },
     })
   ],
+  base: "/2025-1-s1-g2-t2",
 })
