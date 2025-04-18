@@ -3,12 +3,11 @@ import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    VitePWA({ 
+    VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['editor.svg', 'apple-touch-icon.png'],
       manifest: {
@@ -60,4 +59,5 @@ export default defineConfig({
     })
   ],
   base: "/2025-1-s1-g2-t2/",
+  assetsInclude: ['**/*.wasm'], // 👈 esto es clave
 })
