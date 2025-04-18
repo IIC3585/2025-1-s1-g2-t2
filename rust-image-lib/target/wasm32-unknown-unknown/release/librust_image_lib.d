@@ -1,0 +1,1 @@
+/mnt/c/Users/xenon/OneDrive/Escritorio/2025-1-s1-g2-t2/rust-image-lib/target/wasm32-unknown-unknown/release/librust_image_lib.rlib: /mnt/c/Users/xenon/OneDrive/Escritorio/2025-1-s1-g2-t2/rust-image-lib/src/lib.rs
