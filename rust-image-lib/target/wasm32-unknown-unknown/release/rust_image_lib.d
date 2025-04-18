@@ -1,1 +1,1 @@
-/Users/apple/Desktop/Universidad/6to\ año/11\ semestre/Web\ ii/2025-1-s1-g2-t2/rust-image-lib/target/wasm32-unknown-unknown/release/rust_image_lib.wasm: /Users/apple/Desktop/Universidad/6to\ año/11\ semestre/Web\ ii/2025-1-s1-g2-t2/rust-image-lib/src/lib.rs
+/mnt/c/Users/xenon/OneDrive/Escritorio/2025-1-s1-g2-t2/rust-image-lib/target/wasm32-unknown-unknown/release/rust_image_lib.wasm: /mnt/c/Users/xenon/OneDrive/Escritorio/2025-1-s1-g2-t2/rust-image-lib/src/lib.rs

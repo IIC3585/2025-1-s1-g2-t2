@@ -43,6 +43,20 @@ export default defineConfig({
           }
         ],
       },
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/www.gstatic.com\/firebasejs\//,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'firebase-scripts',
+            },
+          },
+        ],
+      },
+      devOptions: {
+        enabled: true,
+      },
     })
   ],
   base: "/2025-1-s1-g2-t2/",
