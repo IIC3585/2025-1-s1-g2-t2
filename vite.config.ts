@@ -15,6 +15,8 @@ export default defineConfig({
         short_name: 'Image Editor',
         description: 'A simple image editor application',
         theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
         icons: [
           {
             src: "pwa-192x192.png",
