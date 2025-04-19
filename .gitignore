@@ -13,6 +13,7 @@ dist-ssr
 *.local
 dev-dist
 src/notifications/serviceAccountKey.json
+rust-image-lib
 
 # Editor directories and files
 .vscode/*
