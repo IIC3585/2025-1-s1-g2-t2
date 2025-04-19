@@ -1,88 +1,115 @@
+'use client'
 
 import { useState, useRef, useEffect } from 'react';
-import init, { invert_colors } from '../../rust-image-lib/pkg/rust_image_lib.js';
-import { grayscale } from '../../rust-image-lib/pkg/rust_image_lib.js';
-import { blur } from '../../rust-image-lib/pkg/rust_image_lib.js';
+import init, { invert_colors, grayscale, blur } from '../../rust-image-lib/pkg/rust_image_lib.js';
+import { saveImage, listImages, getImage } from '../db/imagesDB';
+import FileSystemAccess from '../components/fileSystemAccess';
 
 export default function Home() {
-  const [imageSrc, setImageSrc] = useState<string | null>(null); // Imagen actual
-  const [originalImage, setOriginalImage] = useState<string | null>(null); // Imagen original
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string>('imagen.png');
+  const [savedImages, setSavedImages] = useState<{ hash: string; name: string }[]>([]);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  // Inicializa WebAssembly al cargar el componente
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
+  const totalPages = Math.ceil(savedImages.length / pageSize);
+
   useEffect(() => {
     init().catch(console.error);
+    fetchSavedImages();
   }, []);
 
-  // Maneja la carga de la imagen y guarda original y mostrada
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const src = e.target?.result as string;
-        setImageSrc(src);
-        setOriginalImage(src);  // Guardar la original para restaurar luego
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
     }
+  }, [savedImages, totalPages]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = reader.result as string;
+      setImageSrc(src);
+      setOriginalImage(src);
+    };
+    reader.readAsDataURL(file);
   };
 
-  // Procesa la imagen con filtros de WebAssembly
   const processImage = async (filter: string) => {
     if (!imageRef.current) return;
-
-    // Si el filtro es "none", restaura la imagen original
     if (filter === 'none') {
-      if (originalImage) {
-        setImageSrc(originalImage);
-      }
+      if (originalImage) setImageSrc(originalImage);
       return;
     }
 
+    const img = imageRef.current;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const img = imageRef.current;
-
     if (!ctx) return;
 
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     ctx.drawImage(img, 0, 0);
-
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    let processedPixels: Uint8ClampedArray | undefined;
-
+    let processed: Uint8ClampedArray;
     switch (filter) {
       case 'invert':
-        processedPixels = new Uint8ClampedArray(
-          invert_colors(new Uint8Array(imageData.data))
-        );
+        processed = new Uint8ClampedArray(invert_colors(new Uint8Array(imageData.data)));
         break;
-
       case 'grayscale':
-        processedPixels = new Uint8ClampedArray(
-          grayscale(new Uint8Array(imageData.data))
-        );
+        processed = new Uint8ClampedArray(grayscale(new Uint8Array(imageData.data)));
         break;
-
       case 'blur':
-        processedPixels = new Uint8ClampedArray(
-          blur(new Uint8Array(imageData.data), canvas.width, canvas.height, 5.0) // sigma ajustable
+        processed = new Uint8ClampedArray(
+          blur(new Uint8Array(imageData.data), canvas.width, canvas.height, 5.0)
         );
         break;
-
       default:
         return;
     }
 
-    if (processedPixels) {
-      imageData.data.set(processedPixels);
-      ctx.putImageData(imageData, 0, 0);
-      setImageSrc(canvas.toDataURL()); // Actualizar la imagen renderizada
-    }
+    imageData.data.set(processed);
+    ctx.putImageData(imageData, 0, 0);
+    setImageSrc(canvas.toDataURL());
   };
+
+  const handleSaveImage = async () => {
+    if (!imageSrc) return;
+    const res = await fetch(imageSrc);
+    const blob = await res.blob();
+    const file = new File([blob], imageName, { type: blob.type });
+    const hash = await saveImage(file);
+    console.log('Guardada con hash:', hash);
+    await fetchSavedImages();
+  };
+
+  const fetchSavedImages = async () => {
+    const all = await listImages();
+    setSavedImages(all.map(img => ({ hash: img.hash, name: img.name })));  
+    setCurrentPage(1);
+  };
+
+  const handleLoadImage = async (hash: string) => {
+    const blob = await getImage(hash);
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    setImageSrc(url);
+    setOriginalImage(url);
+    setImageName(`${hash}.png`);
+  };
+
+  const paginatedImages = savedImages.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+  const canPrev = currentPage > 1;
+  const canNext = currentPage < totalPages;
 
   return (
     <section className="text-center py-12 px-4">
@@ -117,34 +144,81 @@ export default function Home() {
         </div>
       )}
 
-      {imageSrc && (
-        <div className="flex justify-center space-x-4">
-          <button
-            onClick={() => processImage('grayscale')}
-            className="bg-blue-800 text-black py-2 px-4 rounded hover:bg-blue-700 transition"
-          >
-            Blanco y Negro
-          </button>
-          {/* <button
-            onClick={() => processImage('invert')}
-            className="bg-blue-800 text-black py-2 px-4 rounded hover:bg-blue-700 transition"
-          >
-            Invertir Colores
-          </button> */}
-          <button
-            onClick={() => processImage('blur')}
-            className="bg-blue-800 text-black py-2 px-4 rounded hover:bg-blue-700 transition"
-          >
-            Desenfocar (Blur)
-          </button>
-          <button
-            onClick={() => processImage('none')}
-            className="bg-blue-400 text-black py-2 px-4 rounded hover:bg-blue-300 transition"
-          >
-            Quitar Filtros
-          </button>
-        </div>
-      )}
+      <div className="flex justify-center space-x-4 mb-6">
+        <button onClick={() => processImage('grayscale')} className="bg-blue-800 text-white py-2 px-4 rounded hover:bg-blue-700">
+          Blanco y Negro
+        </button>
+        <button onClick={() => processImage('blur')} className="bg-blue-800 text-white py-2 px-4 rounded hover:bg-blue-700">
+          Desenfocar
+        </button>
+        <button onClick={() => processImage('none')} className="bg-blue-400 text-black py-2 px-4 rounded hover:bg-blue-300">
+          Quitar Filtros
+        </button>
+      </div>
+
+      <div className="flex justify-center mb-6">
+        <button onClick={handleSaveImage} className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
+          💾 Guardar Imagen
+        </button>
+      </div>
+
+      <div className="max-w-md mx-auto text-left mb-4">
+        <h2 className="text-2xl font-semibold mb-4">Imágenes Guardadas</h2>
+        {savedImages.length === 0 ? (
+          <p className="text-black">No hay imágenes guardadas aún.</p>
+        ) : (
+          <ul className="space-y-2">
+            {paginatedImages.map(img => (
+              <li key={img.hash} className="flex justify-between items-center bg-gray-100 p-2 rounded">
+                <span className="truncate text-black">{img.name}</span>
+                <button
+                  onClick={() => handleLoadImage(img.hash)}
+                  className="text-blue-600 hover:underline"
+                >
+                  Cargar
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {savedImages.length > pageSize && (
+          <div className="flex justify-center items-center space-x-4 mt-4">
+            <button
+              onClick={() => canPrev && setCurrentPage(currentPage - 1)}
+              disabled={!canPrev}
+              className={`px-3 py-1 rounded ${
+                canPrev
+                  ? 'bg-gray-200 hover:bg-gray-300'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Anterior
+            </button>
+            <span>Página {currentPage} / {totalPages}</span>
+            <button
+              onClick={() => canNext && setCurrentPage(currentPage + 1)}
+              disabled={!canNext}
+              className={`px-3 py-1 rounded ${
+                canNext
+                  ? 'bg-gray-200 hover:bg-gray-300'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
+      </div>
+
+      <FileSystemAccess
+        imageSrc={imageSrc}
+        imageName={imageName}
+        onLoadImage={url => {
+          setImageSrc(url);
+          setOriginalImage(url);
+        }}
+      />
     </section>
   );
 }
