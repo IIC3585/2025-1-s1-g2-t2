@@ -26,6 +26,7 @@ export default function FileSystemAccess({ imageSrc, imageName, onLoadImage }: F
       setError(null);
       setFileHandles([]);
       setCurrentPage(1);
+      listFiles();
     } catch (_err) {
       setError('No se seleccionó carpeta');
     }

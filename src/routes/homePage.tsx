@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import init, { invert_colors, grayscale, blur } from '../../rust-image-lib/pkg/rust_image_lib.js';
 import { saveImage, listImages, getImage } from '../db/imagesDB';
-import FileSystemAccess from '../components/fileSystemAccess.js';
+import FileSystemAccess from '../components/fileSystemAccess';
 
 export default function Home() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -12,10 +12,20 @@ export default function Home() {
   const [savedImages, setSavedImages] = useState<{ hash: string; name: string }[]>([]);
   const imageRef = useRef<HTMLImageElement>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
+  const totalPages = Math.ceil(savedImages.length / pageSize);
+
   useEffect(() => {
     init().catch(console.error);
     fetchSavedImages();
   }, []);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [savedImages, totalPages]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,6 +92,7 @@ export default function Home() {
   const fetchSavedImages = async () => {
     const all = await listImages();
     setSavedImages(all.map(img => ({ hash: img.hash, name: img.name })));  
+    setCurrentPage(1);
   };
 
   const handleLoadImage = async (hash: string) => {
@@ -92,6 +103,13 @@ export default function Home() {
     setOriginalImage(url);
     setImageName(`${hash}.png`);
   };
+
+  const paginatedImages = savedImages.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+  const canPrev = currentPage > 1;
+  const canNext = currentPage < totalPages;
 
   return (
     <section className="text-center py-12 px-4">
@@ -144,13 +162,13 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="max-w-md mx-auto text-left mb-6">
+      <div className="max-w-md mx-auto text-left mb-4">
         <h2 className="text-2xl font-semibold mb-4">Imágenes Guardadas</h2>
         {savedImages.length === 0 ? (
           <p className="text-black">No hay imágenes guardadas aún.</p>
         ) : (
           <ul className="space-y-2">
-            {savedImages.map(img => (
+            {paginatedImages.map(img => (
               <li key={img.hash} className="flex justify-between items-center bg-gray-100 p-2 rounded">
                 <span className="truncate text-black">{img.name}</span>
                 <button
@@ -163,12 +181,40 @@ export default function Home() {
             ))}
           </ul>
         )}
+
+        {savedImages.length > pageSize && (
+          <div className="flex justify-center items-center space-x-4 mt-4">
+            <button
+              onClick={() => canPrev && setCurrentPage(currentPage - 1)}
+              disabled={!canPrev}
+              className={`px-3 py-1 rounded ${
+                canPrev
+                  ? 'bg-gray-200 hover:bg-gray-300'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Anterior
+            </button>
+            <span>Página {currentPage} / {totalPages}</span>
+            <button
+              onClick={() => canNext && setCurrentPage(currentPage + 1)}
+              disabled={!canNext}
+              className={`px-3 py-1 rounded ${
+                canNext
+                  ? 'bg-gray-200 hover:bg-gray-300'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
       </div>
 
       <FileSystemAccess
         imageSrc={imageSrc}
         imageName={imageName}
-        onLoadImage={(url) => {
+        onLoadImage={url => {
           setImageSrc(url);
           setOriginalImage(url);
         }}
