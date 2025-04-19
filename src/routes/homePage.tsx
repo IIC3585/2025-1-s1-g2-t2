@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import init, { invert_colors, grayscale, blur } from '../../rust-image-lib/pkg/rust_image_lib.js';
 import { saveImage, listImages, getImage } from '../db/imagesDB';
+import FileSystemAccess from '../components/fileSystemAccess.js';
 
 export default function Home() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -11,13 +12,11 @@ export default function Home() {
   const [savedImages, setSavedImages] = useState<{ hash: string; name: string }[]>([]);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  // Inicializar WASM y cargar listado al montar
   useEffect(() => {
     init().catch(console.error);
     fetchSavedImages();
   }, []);
 
-  // Manejar subida de imagen
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -31,11 +30,10 @@ export default function Home() {
     reader.readAsDataURL(file);
   };
 
-  // Aplicar filtros via WASM
   const processImage = async (filter: string) => {
     if (!imageRef.current) return;
     if (filter === 'none') {
-      originalImage && setImageSrc(originalImage);
+      if (originalImage) setImageSrc(originalImage);
       return;
     }
 
@@ -52,23 +50,14 @@ export default function Home() {
     let processed: Uint8ClampedArray;
     switch (filter) {
       case 'invert':
-        processed = new Uint8ClampedArray(
-          invert_colors(new Uint8Array(imageData.data))
-        );
+        processed = new Uint8ClampedArray(invert_colors(new Uint8Array(imageData.data)));
         break;
       case 'grayscale':
-        processed = new Uint8ClampedArray(
-          grayscale(new Uint8Array(imageData.data))
-        );
+        processed = new Uint8ClampedArray(grayscale(new Uint8Array(imageData.data)));
         break;
       case 'blur':
         processed = new Uint8ClampedArray(
-          blur(
-            new Uint8Array(imageData.data),
-            canvas.width,
-            canvas.height,
-            5.0
-          )
+          blur(new Uint8Array(imageData.data), canvas.width, canvas.height, 5.0)
         );
         break;
       default:
@@ -92,7 +81,7 @@ export default function Home() {
 
   const fetchSavedImages = async () => {
     const all = await listImages();
-    setSavedImages(all.map(img => ({ hash: img.hash, name: img.name })));
+    setSavedImages(all.map(img => ({ hash: img.hash, name: img.name })));  
   };
 
   const handleLoadImage = async (hash: string) => {
@@ -155,7 +144,7 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="max-w-md mx-auto text-left">
+      <div className="max-w-md mx-auto text-left mb-6">
         <h2 className="text-2xl font-semibold mb-4">Imágenes Guardadas</h2>
         {savedImages.length === 0 ? (
           <p className="text-black">No hay imágenes guardadas aún.</p>
@@ -175,6 +164,15 @@ export default function Home() {
           </ul>
         )}
       </div>
+
+      <FileSystemAccess
+        imageSrc={imageSrc}
+        imageName={imageName}
+        onLoadImage={(url) => {
+          setImageSrc(url);
+          setOriginalImage(url);
+        }}
+      />
     </section>
   );
 }
